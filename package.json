@@ -1,21 +1,22 @@
 {
-  "name": "typescript-action",
-  "description": "GitHub Actions TypeScript template",
+  "name": "notify-discord-action",
+  "description": "GitHub Action to send a notification to discord via webhook",
   "version": "0.0.0",
   "author": "",
   "private": true,
-  "homepage": "https://github.com/actions/typescript-action",
+  "homepage": "https://github.com/Minecraftschurli/notifydiscord-action",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/Minecraftschurli/notifydiscord-action.git"
   },
   "bugs": {
-    "url": "https://github.com/actions/typescript-action/issues"
+    "url": "https://github.com/Minecraftschurli/notifydiscord-action/issues"
   },
   "keywords": [
     "actions",
     "node",
-    "setup"
+    "discord",
+    "webhook"
   ],
   "exports": {
     ".": "./dist/index.js"

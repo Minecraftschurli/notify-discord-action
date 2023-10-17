@@ -2722,6 +2722,90 @@ exports["default"] = _default;
 
 /***/ }),
 
+/***/ 63:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getMultilineInput = exports.getJsonInput = exports.getFloatInput = exports.getIntegerInput = exports.getStringInput = void 0;
+const core = __importStar(__nccwpck_require__(186));
+function getStringInput(name, options) {
+    return core.getInput(name, options) || undefined;
+}
+exports.getStringInput = getStringInput;
+// eslint-disable-next-line no-redeclare
+function getIntegerInput(name, radix, options) {
+    if (typeof radix !== "number") {
+        options = radix;
+        radix = 10;
+    }
+    const stringInput = getStringInput(name, options);
+    if (stringInput === undefined)
+        return undefined;
+    try {
+        return parseInt(stringInput, radix);
+    }
+    catch (e) {
+        return undefined;
+    }
+}
+exports.getIntegerInput = getIntegerInput;
+function getFloatInput(name, options) {
+    const stringInput = getStringInput(name, options);
+    if (stringInput === undefined)
+        return undefined;
+    try {
+        return parseFloat(stringInput);
+    }
+    catch (e) {
+        return undefined;
+    }
+}
+exports.getFloatInput = getFloatInput;
+function getJsonInput(name, options) {
+    const stringInput = getStringInput(name, options);
+    if (stringInput === undefined)
+        return undefined;
+    try {
+        return JSON.parse(stringInput);
+    }
+    catch (e) {
+        return undefined;
+    }
+}
+exports.getJsonInput = getJsonInput;
+function getMultilineInput(name, options) {
+    return core.getMultilineInput(name, options);
+}
+exports.getMultilineInput = getMultilineInput;
+
+
+/***/ }),
+
 /***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -2753,27 +2837,173 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(186));
-const wait_1 = __nccwpck_require__(259);
+const inputs_1 = __nccwpck_require__(63);
+const sleep_1 = __nccwpck_require__(986);
+const DEFAULT_USERNAME = "GitHubActions";
+const DEFAULT_RETRIES = 3;
+const OPTIONAL = { required: false };
+const OPTIONAL_TRIMMED = { required: false, trimWhitespace: true };
+function computeMentionsPayload(allowedMentions) {
+    if (allowedMentions.length === 0)
+        return { parse: [] };
+    const parse = new Set();
+    const users = [];
+    const roles = [];
+    for (const allowedMention of allowedMentions) {
+        if (allowedMention === "everyone") {
+            parse.add("everyone");
+            continue;
+        }
+        if (allowedMention === "users") {
+            parse.add("users");
+            continue;
+        }
+        if (allowedMention === "roles") {
+            parse.add("roles");
+            continue;
+        }
+        if (allowedMention.startsWith("&")) {
+            roles.push(allowedMention.substring(1));
+        }
+        else {
+            users.push(allowedMention);
+        }
+    }
+    const payload = {
+        parse: Array.from(parse)
+    };
+    if (!parse.has("users")) {
+        payload.users = users;
+    }
+    if (!parse.has("roles")) {
+        payload.roles = roles;
+    }
+    return payload;
+}
+async function sendWithRetry(url, payload, retry = 3) {
+    const resp = await fetch(url, payload);
+    if (resp.status === 429 && retry !== -1) {
+        if (retry > 0) {
+            const body = await resp.json();
+            const waitUntil = body["retry_after"];
+            core.info(`Rate limit exceeded retrying in ${waitUntil}s`);
+            await (0, sleep_1.sleep)(waitUntil * 1000);
+            return await sendWithRetry(url, payload, retry - 1);
+        }
+        else {
+            throw new Error("Rate limit exceeded multiple times");
+        }
+    }
+    return resp;
+}
+async function editWebhook(url, payload, messageId, retry = 3) {
+    const resp = await sendWithRetry(`${url}/messages/${messageId}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    }, retry);
+    if (resp.ok) {
+        return await resp.json();
+    }
+    else {
+        throw new Error(`Error sending webhook! Status code: ${resp.status} Body: ${await resp.text()}`);
+    }
+}
+async function sendWebhook(url, payload, retry) {
+    const resp = await sendWithRetry(`${url}?wait=true`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    }, retry);
+    if (resp.ok) {
+        return await resp.json();
+    }
+    else {
+        throw new Error(`Error sending webhook! Status code: ${resp.status} Body: ${await resp.text()}`);
+    }
+}
+function parseColor(color) {
+    if (color === undefined)
+        return undefined;
+    if (typeof color === "number")
+        return color;
+    if (color.startsWith("#")) {
+        color = color.substring(1);
+    }
+    return parseInt(color, 16);
+}
+function computeFinalEmbeds(embeds) {
+    if (!embeds || embeds.length === 0)
+        return undefined;
+    for (const embed of embeds) {
+        embed.color = parseColor(embed.color);
+    }
+    return embeds;
+}
+async function sendWebhookMessage() {
+    const webhookUrl = (0, inputs_1.getStringInput)("webhook_url", {
+        required: true,
+        trimWhitespace: true
+    });
+    if (!webhookUrl) {
+        throw new Error("The webhook url is required for this action to operate");
+    }
+    const allowedMentions = (0, inputs_1.getMultilineInput)("allowed_mentions", OPTIONAL_TRIMMED) ?? [];
+    const allowedMentionsPayload = computeMentionsPayload(allowedMentions);
+    const message = (0, inputs_1.getStringInput)("message", OPTIONAL);
+    if (message && message.length > 2000) {
+        throw new Error("The maximum length of the message was exceeded");
+    }
+    const embeds = (0, inputs_1.getJsonInput)("embeds", OPTIONAL);
+    if (embeds && embeds.length > 10) {
+        throw new Error("The maximum of 10 embeds was exceeded");
+    }
+    if (!message && (!embeds || embeds.length === 0)) {
+        throw new Error("Expected at least one of message or embeds to be provided");
+    }
+    const messageId = (0, inputs_1.getStringInput)("message_id", OPTIONAL);
+    const finalEmbeds = computeFinalEmbeds(embeds);
+    const payload = {
+        content: message,
+        embeds: finalEmbeds,
+        allowed_mentions: allowedMentionsPayload
+    };
+    const retry = (0, inputs_1.getIntegerInput)("retry", OPTIONAL) ?? DEFAULT_RETRIES;
+    if (!messageId) {
+        const username = (0, inputs_1.getStringInput)("username", OPTIONAL) ?? DEFAULT_USERNAME;
+        const avatar = (0, inputs_1.getStringInput)("avatar_url", OPTIONAL);
+        payload.username = username;
+        payload.avatar_url = avatar;
+        const response = await sendWebhook(webhookUrl, payload, retry);
+        core.setOutput("message_id", response.id);
+    }
+    else {
+        const response = await editWebhook(webhookUrl, payload, messageId, retry);
+        core.setOutput("message_id", response.id);
+    }
+}
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
 async function run() {
     try {
-        const ms = core.getInput('milliseconds');
-        // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-        core.debug(`Waiting ${ms} milliseconds ...`);
-        // Log the current timestamp, wait, then log the new timestamp
-        core.debug(new Date().toTimeString());
-        await (0, wait_1.wait)(parseInt(ms, 10));
-        core.debug(new Date().toTimeString());
-        // Set outputs for other workflow steps to use
-        core.setOutput('time', new Date().toTimeString());
+        await sendWebhookMessage();
     }
     catch (error) {
         // Fail the workflow run if an error occurs
-        if (error instanceof Error)
+        if (error instanceof Error) {
             core.setFailed(error.message);
+            return;
+        }
+        if (typeof error === "string") {
+            core.setFailed(error);
+            return;
+        }
     }
 }
 exports.run = run;
@@ -2781,27 +3011,17 @@ exports.run = run;
 
 /***/ }),
 
-/***/ 259:
+/***/ 986:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.wait = void 0;
-/**
- * Wait for a number of milliseconds.
- * @param milliseconds The number of milliseconds to wait.
- * @returns {Promise<string>} Resolves with 'done!' after the wait is over.
- */
-async function wait(milliseconds) {
-    return new Promise(resolve => {
-        if (isNaN(milliseconds)) {
-            throw new Error('milliseconds not a number');
-        }
-        setTimeout(() => resolve('done!'), milliseconds);
-    });
+exports.sleep = void 0;
+async function sleep(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
 }
-exports.wait = wait;
+exports.sleep = sleep;
 
 
 /***/ }),
@@ -2944,6 +3164,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
  */
 const main_1 = __nccwpck_require__(399);
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
+// noinspection JSIgnoredPromiseFromCall
 (0, main_1.run)();
 
 })();

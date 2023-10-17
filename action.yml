@@ -1,18 +1,44 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Notify Discord Action'
+description: 'Sends a Discord message via webhook'
+author: 'Minecraftschurli'
 
-# Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  retry:
+    description: 'The number of times to retry if the rate limit was reached'
+    required: false
+    default: '3'
+  webhook_url:
+    description: 'The URL of the Discord webhook (secret)'
     required: true
-    default: '1000'
+  message_id:
+    description: 'The Id of the previously sent message to edit (needs to have been sent by the same webhook)'
+    required: false
+  username:
+    description: 'The username of the webhook message sender (default: "GitHubActions")'
+    required: false
+    default: 'GitHubActions'
+  avatar_url:
+    description: 'The URL of the message senders avatar'
+    required: false
+  message:
+    description: 'The message to be sent, supports limited markdown'
+    required: false
+  embeds:
+    description: 'The embeds for the message to be sent as a stringified json array'
+    required: false
+  allowed_mentions:
+    description: 'Multiline list of allowed mentions, 
+    "everyone" enables @everyone and @here, 
+    "users" enables all user pings, 
+    "roles" enables all role pings, 
+    a snowflake enables the user with that id to be pinged and 
+    a snowflake prefixed with & enables the role with that id to be pinged'
+    required: false
+    default: ''
 
-# Define your outputs here.
 outputs:
-  time:
-    description: 'Your output description here'
+  message_id:
+    description: 'The Id of the message that was sent'
 
 runs:
   using: node20
