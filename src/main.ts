@@ -166,7 +166,7 @@ async function sendWebhookMessage(): Promise<void> {
     embeds: finalEmbeds,
     allowed_mentions: allowedMentionsPayload
   };
-  core.info(`Payload: ${JSON.stringify(payload)}`);
+  console.log(`Payload: ${JSON.stringify(payload)}`);
   const retry = getIntegerInput("retry", OPTIONAL) ?? DEFAULT_RETRIES;
   if (!messageId) {
     const username = getStringInput("username", OPTIONAL) ?? DEFAULT_USERNAME;
