@@ -54,14 +54,12 @@ jobs:
         uses: ./
         with:
           webhook_url: ${{ secrets.DISCORD_TEST_WEBHOOK }}
-          username: Test
+          username: "ArsMagica: Legacy"
           avatar_url: https://github.com/MinecraftschurliMods/Ars-Magica-Legacy/blob/version/1.19.x/src/main/resources/logo_small.png?raw=true
-          message: |
-            # Hello, World!
-            <@213343613583622144> It works!
-            <@&932037825279443004> Role Ping!
-            <@&358286015204425728> Disabled role ping
-          embeds: '[{ "title": "Test message", "description": "Release?", "timestamp": "2023-10-17T12:21:32Z", "color": "#ff0000", "footer": {"text": "Footer"}, "thumbnail": {"url": "https://github.com/MinecraftschurliMods/Ars-Magica-Legacy/blob/version/1.19.x/src/main/resources/logo_small.png?raw=true"}, "author": {"name": "Minecraftschurli", "icon_url": "https://avatars.githubusercontent.com/u/90090953?s=400&u=701a45b7e8be939fe41f256e4d684e49110dcbb8&v=4"}, "fields": [{"name": "version", "value": "1.20.2"}] }]'
+          message: "<@213343613583622144> An update for ArsMagica: Legacy was released!"
+          embeds: '[ { "title": "Update Released", "timestamp": "2024-02-08T15:08:13Z", "color": "#00ff00", "footer": { "text": "Potion Bundles" }, "thumbnail": { "url": "https://raw.githubusercontent.com/MinecraftschurliMods/PotionBundles/1.20.1-1.8/src/main/resources/logo_small.png" }, "author": { "name": "Minecraftschurli", "icon_url": "https://avatars.githubusercontent.com/u/23388022" }, "fields": [ { "name": "Version", "value": "`1.20-1.8`" }, { "name": "CurseForge", "value": "[Download](https://www.curseforge.com/minecraft/mc-mods/potion-bundles/files/5089821)", "inline": true }, { "name": "Modrinth", "value": "[Download](https://modrinth.com/mod/potion-bundles/version/1.20.1-1.8)", "inline": true }, { "name": "GitHub", "value": "[View](https://github.com/MinecraftschurliMods/PotionBundles/releases/tag/1.20.1-1.8)", "inline": true }, { "name": "Summary", "value": "```Fixed a rare compatibility issue
+  ```" } ] } ]'
+          allowed_mentions: 213343613583622144 
 
       - name: Print Output
         id: output
