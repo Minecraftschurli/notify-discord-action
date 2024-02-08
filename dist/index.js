@@ -2880,23 +2880,21 @@ function computeMentionsPayload(allowedMentions) {
     }
     return payload;
 }
-async function sendWithRetry(url, payload, retry = 3) {
+async function sendWithRetry(url, payload, retry) {
     const resp = await fetch(url, payload);
-    if (resp.status === 429 && retry !== -1) {
-        if (retry > 0) {
-            const body = await resp.json();
-            const waitUntil = body["retry_after"];
-            core.info(`Rate limit exceeded retrying in ${waitUntil}s`);
-            await (0, sleep_1.sleep)(waitUntil * 1000);
-            return await sendWithRetry(url, payload, retry - 1);
-        }
-        else {
-            throw new Error("Rate limit exceeded multiple times");
-        }
+    if (resp.status !== 429 || retry === -1) {
+        return resp;
     }
-    return resp;
+    if (retry <= 0) {
+        throw new Error("Rate limit exceeded multiple times");
+    }
+    const body = await resp.json();
+    const waitUntil = body["retry_after"];
+    core.info(`Rate limit exceeded retrying in ${waitUntil}s`);
+    await (0, sleep_1.sleep)(waitUntil * 1000);
+    return await sendWithRetry(url, payload, retry - 1);
 }
-async function editWebhook(url, payload, messageId, retry = 3) {
+async function editWebhook(url, payload, messageId, retry) {
     const resp = await sendWithRetry(`${url}/messages/${messageId}`, {
         method: "PATCH",
         headers: {
@@ -2972,6 +2970,7 @@ async function sendWebhookMessage() {
         embeds: finalEmbeds,
         allowed_mentions: allowedMentionsPayload
     };
+    core.debug(`Payload: ${JSON.stringify(payload)}`);
     const retry = (0, inputs_1.getIntegerInput)("retry", OPTIONAL) ?? DEFAULT_RETRIES;
     if (!messageId) {
         const username = (0, inputs_1.getStringInput)("username", OPTIONAL) ?? DEFAULT_USERNAME;
